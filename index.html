@@ -155,8 +155,9 @@
   const loader = document.getElementById('loader');
 
   const pages = IMAGES.filter(s => s && s.trim());
-  let cur     = 0;
-  let loading = false; // 🔒 page-change lock
+  let cur         = 0;
+  let loading     = false; // 🔒 page-change lock
+  let initialized = false;
 
   // ── Build dots ──
   pages.forEach((_, i) => {
@@ -185,7 +186,7 @@
   function go(n) {
     if (loading) return; // 🔒 blocked while loading
     const next = Math.max(0, Math.min(pages.length - 1, n));
-    if (next === cur && img.src) return;
+    if (next === cur && initialized) return;
     cur = next;
 
     // Show loader, fade out current image
@@ -205,12 +206,13 @@
       img.style.opacity = '1';
       loader.classList.add('hidden');
       setLoading(false);
+      initialized = true;
     };
     newImg.onerror = () => {
-      // Still unlock even on error
       img.style.opacity = '1';
       loader.classList.add('hidden');
       setLoading(false);
+      initialized = true;
     };
     newImg.src = pages[cur];
   }
