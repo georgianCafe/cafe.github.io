@@ -25,10 +25,11 @@
       height: auto;
       object-fit: contain;
       display: block;
+      opacity: 0;
       transition: opacity 0.22s ease;
     }
 
-    /* ── Loading overlay ── */
+    /* ── Loader ── */
     #loader {
       position: absolute;
       inset: 0;
@@ -36,18 +37,15 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 14px;
       background: #1a1a1a;
       z-index: 50;
-      opacity: 1;
-      transition: opacity 0.25s ease;
-    }
-    #loader.hidden {
-      opacity: 0;
       pointer-events: none;
     }
+    #loader.off { display: none; }
+
     .spinner {
-      width: 48px; height: 48px;
+      width: 46px; height: 46px;
       border: 3px solid rgba(255,255,255,0.08);
       border-top-color: #7aaa52;
       border-radius: 50%;
@@ -55,10 +53,10 @@
     }
     .loader-text {
       font-family: sans-serif;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.35);
+      color: rgba(255,255,255,0.3);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -67,7 +65,7 @@
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      z-index: 10;
+      z-index: 60;
       width: 42px; height: 76px;
       background: rgba(0,0,0,0.42);
       border: none;
@@ -78,13 +76,12 @@
       align-items: center;
       justify-content: center;
       backdrop-filter: blur(4px);
-      transition: background 0.2s, color 0.2s, opacity 0.2s;
+      transition: background 0.2s, color 0.2s;
       -webkit-tap-highlight-color: transparent;
     }
-    .arrow:hover { background: rgba(90,122,58,0.72); color: #fff; }
+    .arrow:hover    { background: rgba(90,122,58,0.72); color: #fff; }
     .arrow:disabled { opacity: 0; pointer-events: none; }
-    /* while loading — visually dim but still show */
-    .arrow.loading { opacity: 0.25; pointer-events: none; }
+    .arrow.locked   { opacity: 0.25; pointer-events: none; }
     #aL { left:  0; border-radius: 0 6px 6px 0; }
     #aR { right: 0; border-radius: 6px 0 0 6px; }
 
@@ -99,7 +96,7 @@
       flex-wrap: wrap;
       justify-content: center;
       max-width: 80vw;
-      z-index: 10;
+      z-index: 60;
     }
     .dot {
       width: 8px; height: 8px;
@@ -110,15 +107,14 @@
     }
     .dot.on    { background: #7aaa52; transform: scale(1.35); }
     .dot:hover { background: rgba(255,255,255,0.55); }
-    /* dots locked while loading */
-    #dots.loading { pointer-events: none; }
+    #dots.locked { pointer-events: none; }
   </style>
 </head>
 <body>
 <div id="app">
-  <img id="slide-img" src="" alt=""/>
 
-  <!-- Loading overlay -->
+  <img id="slide-img" alt=""/>
+
   <div id="loader">
     <div class="spinner"></div>
     <div class="loader-text">Загрузка…</div>
@@ -127,8 +123,8 @@
   <button class="arrow" id="aL">&#8249;</button>
   <button class="arrow" id="aR">&#8250;</button>
   <div id="dots"></div>
-</div>
 
+</div>
 <script>
   const IMAGES = [
     "1.jpg",
@@ -149,83 +145,78 @@
   ];
 
   const img    = document.getElementById('slide-img');
+  const loader = document.getElementById('loader');
   const aL     = document.getElementById('aL');
   const aR     = document.getElementById('aR');
   const dotsEl = document.getElementById('dots');
-  const loader = document.getElementById('loader');
 
-  const pages = IMAGES.filter(s => s && s.trim());
-  let cur         = 0;
-  let loading     = false; // 🔒 page-change lock
-  let initialized = false;
+  let cur     = 0;
+  let busy    = false;
+  const total = IMAGES.length;
 
   // ── Build dots ──
-  pages.forEach((_, i) => {
+  IMAGES.forEach((_, i) => {
     const d = document.createElement('div');
-    d.className = 'dot' + (i === 0 ? ' on' : '');
-    d.onclick = () => go(i);
+    d.className = 'dot';
+    d.addEventListener('click', () => go(i));
     dotsEl.appendChild(d);
   });
-  if (pages.length > 30) dotsEl.style.display = 'none';
 
-  // ── Lock / unlock UI ──
-  function setLoading(state) {
-    loading = state;
-    aL.classList.toggle('loading', state);
-    aR.classList.toggle('loading', state);
-    dotsEl.classList.toggle('loading', state);
-  }
-
-  function syncDots() {
+  function syncUI() {
+    // dots
     dotsEl.querySelectorAll('.dot').forEach((d, i) =>
       d.classList.toggle('on', i === cur)
     );
-  }
-
-  // ── Navigate ──
-  function go(n) {
-    if (loading) return; // 🔒 blocked while loading
-    const next = Math.max(0, Math.min(pages.length - 1, n));
-    if (next === cur && initialized) return;
-    cur = next;
-
-    // Show loader, fade out current image
-    setLoading(true);
-    loader.classList.remove('hidden');
-    img.style.opacity = '0';
-
-    // Update arrow disabled state (but keep .loading class too)
+    // arrows: disabled at edges, locked while busy
     aL.disabled = cur === 0;
-    aR.disabled = cur === pages.length - 1;
-    syncDots();
-
-    // Load image
-    const newImg = new Image();
-    newImg.onload = () => {
-      img.src = newImg.src;
-      img.style.opacity = '1';
-      loader.classList.add('hidden');
-      setLoading(false);
-      initialized = true;
-    };
-    newImg.onerror = () => {
-      img.style.opacity = '1';
-      loader.classList.add('hidden');
-      setLoading(false);
-      initialized = true;
-    };
-    newImg.src = pages[cur];
+    aR.disabled = cur === total - 1;
+    aL.classList.toggle('locked', busy);
+    aR.classList.toggle('locked', busy);
+    dotsEl.classList.toggle('locked', busy);
   }
 
-  // ── Init — load first image ──
-  aL.disabled = true;
-  aR.disabled = pages.length <= 1;
+  function showLoader() {
+    loader.classList.remove('off');
+    img.style.opacity = '0';
+  }
+
+  function hideLoader() {
+    loader.classList.add('off');
+    img.style.opacity = '1';
+  }
+
+  function go(n) {
+    if (busy) return;
+    n = Math.max(0, Math.min(total - 1, n));
+    if (n === cur && loader.classList.contains('off')) return;
+
+    cur  = n;
+    busy = true;
+    showLoader();
+    syncUI();
+
+    // Set handlers BEFORE setting src
+    img.onload = function () {
+      busy = false;
+      hideLoader();
+      syncUI();
+    };
+
+    img.onerror = function () {
+      busy = false;
+      hideLoader();
+      syncUI();
+    };
+
+    img.src = IMAGES[cur];
+  }
+
+  // Start
   go(0);
 
-  aL.onclick = () => go(cur - 1);
-  aR.onclick = () => go(cur + 1);
+  aL.addEventListener('click', () => go(cur - 1));
+  aR.addEventListener('click', () => go(cur + 1));
 
-  // Keyboard (also blocked while loading)
   document.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(cur + 1);
     if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(cur - 1);
