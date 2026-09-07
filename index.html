@@ -20,13 +20,14 @@
 
     #slide-img {
       max-width: 100%;
-      max-height: 100%;
+      max-height: calc(100% - 68px);
       width: auto;
       height: auto;
       object-fit: contain;
       display: block;
       opacity: 0;
       transition: opacity 0.22s ease;
+      margin-bottom: 52px;
     }
 
     /* ── Loader ── */
@@ -60,43 +61,48 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Arrows ── */
-    .arrow {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 60;
-      width: 42px; height: 76px;
-      background: rgba(0,0,0,0.42);
-      border: none;
-      color: rgba(255,255,255,0.8);
-      font-size: 1.6rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(4px);
-      transition: background 0.2s, color 0.2s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .arrow:hover    { background: rgba(90,122,58,0.72); color: #fff; }
-    .arrow:disabled { opacity: 0; pointer-events: none; }
-    .arrow.locked   { opacity: 0.25; pointer-events: none; }
-    #aL { left:  0; border-radius: 0 6px 6px 0; }
-    #aR { right: 0; border-radius: 6px 0 0 6px; }
-
-    /* ── Dots ── */
-    #dots {
+    /* ── Bottom controls (arrows + dots) ── */
+    #controls {
       position: absolute;
       bottom: 14px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 60;
+      max-width: 92vw;
+    }
+
+    .arrow {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      background: rgba(0,0,0,0.42);
+      border: none;
+      border-radius: 6px;
+      color: rgba(255,255,255,0.8);
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      transition: background 0.2s, color 0.2s, opacity 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .arrow:hover    { background: rgba(90,122,58,0.72); color: #fff; }
+    .arrow:disabled { opacity: 0; pointer-events: none; }
+    .arrow.locked   { opacity: 0.25; pointer-events: none; }
+
+    #dots {
+      display: flex;
       gap: 7px;
       flex-wrap: wrap;
       justify-content: center;
-      max-width: 80vw;
-      z-index: 60;
+      align-items: center;
+      max-width: min(70vw, 420px);
     }
     .dot {
       width: 8px; height: 8px;
@@ -120,9 +126,11 @@
     <div class="loader-text">Загрузка…</div>
   </div>
 
-  <button class="arrow" id="aL">&#8249;</button>
-  <button class="arrow" id="aR">&#8250;</button>
-  <div id="dots"></div>
+  <div id="controls">
+    <button class="arrow" id="aL" aria-label="Previous">&#8249;</button>
+    <div id="dots"></div>
+    <button class="arrow" id="aR" aria-label="Next">&#8250;</button>
+  </div>
 
 </div>
 <script>
