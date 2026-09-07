@@ -2,32 +2,60 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>Меню</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a1a; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #1a1a1a;
+      /* iOS Safari fill when 100vh is wrong */
+      min-height: 100%;
+      min-height: -webkit-fill-available;
+    }
 
     #app {
-      width: 100vw;
-      height: 100vh;
+      /* Fixed inset avoids Android/iOS 100vh URL-bar bugs */
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      max-height: -webkit-fill-available;
+      background: #1a1a1a;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Image area — takes remaining space above controls */
+    #stage {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      min-width: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
-      user-select: none;
+      padding: 8px;
     }
 
     #slide-img {
       max-width: 100%;
-      max-height: calc(100% - 68px);
+      max-height: 100%;
       width: auto;
       height: auto;
       object-fit: contain;
       display: block;
       opacity: 0;
       transition: opacity 0.22s ease;
-      margin-bottom: 52px;
+      -webkit-user-drag: none;
+      user-select: none;
     }
 
     /* ── Loader ── */
@@ -61,55 +89,73 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Bottom controls (arrows + dots) ── */
+    /* ── Bottom controls in document flow (never overlays image) ── */
     #controls {
-      position: absolute;
-      bottom: 14px;
-      left: 50%;
-      transform: translateX(-50%);
+      flex: 0 0 auto;
       display: flex;
       align-items: center;
-      gap: 16px;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      padding: 10px 12px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      background: #1a1a1a;
       z-index: 60;
-      max-width: 92vw;
     }
 
     .arrow {
       flex-shrink: 0;
-      width: 40px;
-      height: 40px;
-      background: rgba(0,0,0,0.42);
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
+      background: rgba(255,255,255,0.10);
       border: none;
-      border-radius: 6px;
-      color: rgba(255,255,255,0.8);
-      font-size: 1.5rem;
+      border-radius: 8px;
+      color: rgba(255,255,255,0.9);
+      font-size: 1.6rem;
       line-height: 1;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(4px);
       transition: background 0.2s, color 0.2s, opacity 0.2s;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      appearance: none;
+      -webkit-appearance: none;
     }
     .arrow:hover    { background: rgba(90,122,58,0.72); color: #fff; }
+    .arrow:active   { background: rgba(90,122,58,0.85); }
     .arrow:disabled { opacity: 0; pointer-events: none; }
     .arrow.locked   { opacity: 0.25; pointer-events: none; }
 
     #dots {
       display: flex;
-      gap: 7px;
+      gap: 8px;
       flex-wrap: wrap;
       justify-content: center;
       align-items: center;
-      max-width: min(70vw, 420px);
+      flex: 1 1 auto;
+      max-width: min(62vw, 360px);
+      min-height: 44px;
     }
     .dot {
-      width: 8px; height: 8px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       background: rgba(255,255,255,0.22);
       cursor: pointer;
       transition: background 0.2s, transform 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      /* larger hit target without changing visual size */
+      position: relative;
+    }
+    .dot::before {
+      content: "";
+      position: absolute;
+      inset: -10px;
     }
     .dot.on    { background: #7aaa52; transform: scale(1.35); }
     .dot:hover { background: rgba(255,255,255,0.55); }
@@ -119,17 +165,18 @@
 <body>
 <div id="app">
 
-  <img id="slide-img" alt=""/>
-
-  <div id="loader">
-    <div class="spinner"></div>
-    <div class="loader-text">Загрузка…</div>
+  <div id="stage">
+    <img id="slide-img" alt=""/>
+    <div id="loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Загрузка…</div>
+    </div>
   </div>
 
   <div id="controls">
-    <button class="arrow" id="aL" aria-label="Previous">&#8249;</button>
+    <button type="button" class="arrow" id="aL" aria-label="Previous">&#8249;</button>
     <div id="dots"></div>
-    <button class="arrow" id="aR" aria-label="Next">&#8250;</button>
+    <button type="button" class="arrow" id="aR" aria-label="Next">&#8250;</button>
   </div>
 
 </div>
@@ -157,6 +204,7 @@
   const aL     = document.getElementById('aL');
   const aR     = document.getElementById('aR');
   const dotsEl = document.getElementById('dots');
+  const stage  = document.getElementById('stage');
 
   let cur     = 0;
   let busy    = false;
@@ -166,16 +214,16 @@
   IMAGES.forEach((_, i) => {
     const d = document.createElement('div');
     d.className = 'dot';
+    d.setAttribute('role', 'button');
+    d.setAttribute('aria-label', 'Slide ' + (i + 1));
     d.addEventListener('click', () => go(i));
     dotsEl.appendChild(d);
   });
 
   function syncUI() {
-    // dots
     dotsEl.querySelectorAll('.dot').forEach((d, i) =>
       d.classList.toggle('on', i === cur)
     );
-    // arrows: disabled at edges, locked while busy
     aL.disabled = cur === 0;
     aR.disabled = cur === total - 1;
     aL.classList.toggle('locked', busy);
@@ -203,7 +251,6 @@
     showLoader();
     syncUI();
 
-    // Set handlers BEFORE setting src
     img.onload = function () {
       busy = false;
       hideLoader();
@@ -219,7 +266,6 @@
     img.src = IMAGES[cur];
   }
 
-  // Start
   go(0);
 
   aL.addEventListener('click', () => go(cur - 1));
@@ -229,6 +275,23 @@
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(cur + 1);
     if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(cur - 1);
   });
+
+  // Swipe on the image area (Android / iOS)
+  let touchX = null;
+  stage.addEventListener('touchstart', e => {
+    if (e.changedTouches && e.changedTouches[0]) {
+      touchX = e.changedTouches[0].clientX;
+    }
+  }, { passive: true });
+
+  stage.addEventListener('touchend', e => {
+    if (touchX === null || !e.changedTouches || !e.changedTouches[0]) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    if (Math.abs(dx) < 50) return;
+    if (dx < 0) go(cur + 1);
+    else go(cur - 1);
+  }, { passive: true });
 </script>
 </body>
 </html>
